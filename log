@@ -1,0 +1,9 @@
+mysql --user=root -p
+CREATE DATABASE example_com;
+CREATE USER 'example_user'@'localhost' IDENTIFIED BY 'H7{"Qj1n>P';
+GRANT ALL PRIVILEGES ON example_com.* TO 'example_user'@'localhost';
+exit
+mysql example_com --user=root -p < sql/01-supplier_product_job.sql
+wget http://getcomposer.org/composer.phar
+php composer.phar install
+
