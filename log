@@ -10,13 +10,14 @@ php composer.phar install
 # Edit ~/.bashrc
 # Add the following line
 export PATH=$PATH:vendor/bin
+# Don't forget to close/reopen your terminal
 
-#vendor/bin/propel reverse "mysql:host=localhost;dbname=example_com;user=example_user;password=H7{\"Qj1n>P" --database-name=example_com --output-dir=.
+#propel reverse "mysql:host=localhost;dbname=example_com;user=example_user;password=H7{\"Qj1n>P" --database-name=example_com --output-dir=.
 
 # Edit vendor/propel/propel/src/Propel/Generator/Command/InitCommand.php
 # To fix https://github.com/propelorm/Propel2/issues/1141
 
-[sbn@localhost example.com]$ vendor/bin/propel init
+[sbn@localhost example.com]$ propel init
 
                         
   Propel 2 Initializer  
@@ -104,9 +105,9 @@ In propel.yml.dist
 
 # Add propel.yml to .gitignore
 
-vendor/bin/propel sql:build
-vendor/bin/propel model:build
-vendor/bin/propel config:convert
+propel sql:build
+propel model:build
+propel config:convert
 
 # Add generated-conf to .gitignore
 
