@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<database name="example_com" defaultIdMethod="native" defaultPhpNamingMethod="underscore" namespace="Uphpu\Propel2Quickstart">
+<database name="default" defaultIdMethod="native" defaultPhpNamingMethod="underscore" namespace="Uphpu\Propel2Quickstart">
   <table name="job" idMethod="native" phpName="Job">
     <column name="jnum" phpName="Jnum" type="CHAR" size="5" primaryKey="true" required="true"/>
     <column name="jname" phpName="Jname" type="CHAR" size="20" required="true"/>

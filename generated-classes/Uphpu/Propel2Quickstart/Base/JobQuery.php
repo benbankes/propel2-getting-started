@@ -80,7 +80,7 @@ abstract class JobQuery extends ModelCriteria
      * @param     string $modelName The phpName of a model, e.g. 'Book'
      * @param     string $modelAlias The alias for the model in this query, e.g. 'b'
      */
-    public function __construct($dbName = 'example_com', $modelName = '\\Uphpu\\Propel2Quickstart\\Job', $modelAlias = null)
+    public function __construct($dbName = 'default', $modelName = '\\Uphpu\\Propel2Quickstart\\Job', $modelAlias = null)
     {
         parent::__construct($dbName, $modelName, $modelAlias);
     }

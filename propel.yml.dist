@@ -9,7 +9,7 @@
 propel:
    database:
        connections:
-           example_com:
+           default:
                adapter: mysql
                dsn: mysql:host=localhost;port=3306;dbname=example_com
                settings:

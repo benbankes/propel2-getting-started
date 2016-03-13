@@ -1,2 +1,2 @@
 # Sqlfile -> Database map
-example_com.sql=example_com
+default.sql=default

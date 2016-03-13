@@ -86,13 +86,10 @@ Propel 2 is ready to be used!
 
 # Do the following things
 In schema.xml, change the "database" element
-- Change the "name" attribute from "default" to "example_com"
 - Add a "namespace" attribute with the value "Uphpu\Propel2Quickstart"
 In propel.yml
-- Rename the "default:" key to "example_com:"
 - Delete keys "adapter:", "dsn:", and "settings:" (including charset)
 In propel.yml.dist
-- Rename the "default:" key to "example_com:" as before
 - Delete the "paths:" key (along with schemaDir and phpDir)
 - Uncomment out the whole "database:" key and all sub items
 - Delete "user:" and "password:"
