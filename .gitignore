@@ -1,2 +1,4 @@
 vendor
 .idea
+generated-conf
+propel.yml

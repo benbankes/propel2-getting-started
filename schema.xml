@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<database name="example_com" defaultIdMethod="native" defaultPhpNamingMethod="underscore" namespace="Uphpu\Propel2Quickstart">
+  <table name="job" idMethod="native" phpName="Job">
+    <column name="jnum" phpName="Jnum" type="CHAR" size="5" primaryKey="true" required="true"/>
+    <column name="jname" phpName="Jname" type="CHAR" size="20" required="true"/>
+    <column name="city" phpName="City" type="CHAR" size="15" required="true"/>
+    <vendor type="mysql">
+      <parameter name="Engine" value="InnoDB"/>
+    </vendor>
+  </table>
+  <table name="product" idMethod="native" phpName="Product">
+    <column name="pnum" phpName="Pnum" type="CHAR" size="6" primaryKey="true" required="true"/>
+    <column name="name" phpName="Name" type="CHAR" size="20" required="true"/>
+    <column name="color" phpName="Color" type="CHAR" size="6" required="true"/>
+    <column name="weight" phpName="Weight" type="DECIMAL" size="5" scale="1" required="true"/>
+    <column name="city" phpName="City" type="CHAR" size="15" required="true"/>
+    <vendor type="mysql">
+      <parameter name="Engine" value="InnoDB"/>
+    </vendor>
+  </table>
+  <table name="supplier" idMethod="native" phpName="Supplier">
+    <column name="snum" phpName="Snum" type="CHAR" size="5" primaryKey="true" required="true"/>
+    <column name="name" phpName="Name" type="CHAR" size="20" required="true"/>
+    <column name="status" phpName="Status" type="INTEGER" required="true"/>
+    <column name="city" phpName="City" type="CHAR" size="15" required="true"/>
+    <vendor type="mysql">
+      <parameter name="Engine" value="InnoDB"/>
+    </vendor>
+  </table>
+  <table name="supplier_product" idMethod="native" phpName="SupplierProduct">
+    <column name="snum" phpName="Snum" type="CHAR" size="5" primaryKey="true" required="true"/>
+    <column name="pnum" phpName="Pnum" type="CHAR" size="6" primaryKey="true" required="true"/>
+    <column name="qty" phpName="Qty" type="INTEGER" required="true"/>
+    <foreign-key foreignTable="product" name="FK_supplier_product_product">
+      <reference local="pnum" foreign="pnum"/>
+    </foreign-key>
+    <foreign-key foreignTable="supplier" name="FK_supplier_product_supplier">
+      <reference local="snum" foreign="snum"/>
+    </foreign-key>
+    <index name="FK_supplier_product_product">
+      <index-column name="pnum"/>
+    </index>
+    <vendor type="mysql">
+      <parameter name="Engine" value="InnoDB"/>
+    </vendor>
+  </table>
+  <table name="supplier_product_job" idMethod="native" phpName="SupplierProductJob">
+    <column name="snum" phpName="Snum" type="CHAR" size="5" primaryKey="true" required="true"/>
+    <column name="pnum" phpName="Pnum" type="CHAR" size="6" primaryKey="true" required="true"/>
+    <column name="jnum" phpName="Jnum" type="CHAR" size="5" primaryKey="true" required="true"/>
+    <column name="qty" phpName="Qty" type="INTEGER" required="true"/>
+    <foreign-key foreignTable="job" name="FK_supplier_product_job_job">
+      <reference local="jnum" foreign="jnum"/>
+    </foreign-key>
+    <foreign-key foreignTable="product" name="FK_supplier_product_job_product">
+      <reference local="pnum" foreign="pnum"/>
+    </foreign-key>
+    <foreign-key foreignTable="supplier" name="FK_supplier_product_job_supplier">
+      <reference local="snum" foreign="snum"/>
+    </foreign-key>
+    <index name="FK_supplier_product_job_product">
+      <index-column name="pnum"/>
+    </index>
+    <index name="FK_supplier_product_job_job">
+      <index-column name="jnum"/>
+    </index>
+    <vendor type="mysql">
+      <parameter name="Engine" value="InnoDB"/>
+    </vendor>
+  </table>
+</database>

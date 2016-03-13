@@ -6,4 +6,104 @@ exit
 mysql example_com --user=root -p < sql/01-supplier_product_job.sql
 wget http://getcomposer.org/composer.phar
 php composer.phar install
+#vendor/bin/propel reverse "mysql:host=localhost;dbname=example_com;user=example_user;password=H7{\"Qj1n>P" --database-name=example_com --output-dir=.
 
+[sbn@localhost example.com]$ vendor/bin/propel init
+
+                        
+  Propel 2 Initializer  
+                        
+
+First we need to set up your database connection.
+
+Please pick your favorite database management system: 
+  [mysql ] MySQL
+  [sqlite] SQLite
+  [pgsql ] PostgreSQL
+  [oracle] Oracle
+  [sqlsrv] MSSQL (via pdo-sqlsrv)
+  [mssql ] MSSQL (via pdo-mssql)
+ > mysql
+
+Please enter your database host [localhost]: 
+Please enter your database port [3306]: 
+Please enter your database name: example_com
+Please enter your database user [root]: example_user
+Please enter your database password: 
+Which charset would you like to use? [utf8]: 
+
+                                       
+  Connected to sql server successful!  
+                                       
+
+The initial step in every Propel project is the "build". During build time, a developer describes the structure of the datamodel in a XML file called the "schema".
+
+From this schema, Propel generates PHP classes, called "model classes", made of object-oriented PHP code optimized for a given RDMBS. The model classes are the primary interface to find and manipulate data in the database in Propel.
+
+The XML schema can also be used to generate SQL code to setup your database. Alternatively, you can generate the schema from an existing database.
+
+Do you have an existing database you want to use with propel? [no]: yes
+Schema reverse engineering finished.
+Where do you want to store your schema.xml? [/var/www/html/example.com]: 
+Where do you want propel to save the generated php models? [/var/www/html/example.com]: 
+Which namespace should the generated php models use?:
+
+Propel asks you to define some data to work properly, for instance: connection parameters, working directories, flags to take decisions and so on. You can pass these data via a configuration file.
+
+The name of the configuration file is propel, with one of the supported extensions (yml, xml, json, ini, php). E.g. propel.yml or propel.json.
+
+Please enter the format to use for the generated configuration file (yml, xml, json, ini, php) [yml]: 
+  [0] yml
+  [1] xml
+  [2] json
+  [3] ini
+  [4] php
+ > yml
+
+                                  
+  Propel 2 Initializer - Summary  
+                                  
+
+The Propel 2 Initializer will set up your project with the following settings:
+
+Path to schema.xml: /var/www/html/example.com/schema.xml
+Path to config file: /var/www/html/example.com/propel.yml
+Path to generated php models: /var/www/html/example.com
+Namespace of generated php models: 
+
+Database management system: mysql
+Charset: utf8
+User: example_user
+
+Is everything correct? [no]: yes
+
+ + /var/www/html/example.com/schema.xml
+ + /var/www/html/example.com/propel.yml
+ + /var/www/html/example.com/propel.yml.dist
+
+Propel 2 is ready to be used!
+
+
+# Do the following things
+In schema.xml, change the "database" element
+- Change the "name" attribute from "default" to "example_com"
+- Add a "namespace" attribute with the value "Uphpu\Propel2Quickstart"
+In propel.yml
+- Rename the "default:" key to "example_com:"
+- Delete keys "adapter:", "dsn:", and "settings:" (including charset)
+In propel.yml.dist
+- Rename the "default:" key to "example_com:" as before
+- Delete the "paths:" key (along with schemaDir and phpDir)
+- Uncomment out the whole "database:" key and all sub items
+- Delete "user:" and "password:"
+
+# Add propel.yml to .gitignore
+
+vendor/bin/propel sql:build
+vendor/bin/propel model:build
+vendor/bin/propel config:convert
+
+# Add generated-conf to .gitignore
+
+# Add autoload section to composer.json
+php composer.phar dump-autoload
