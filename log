@@ -8,6 +8,9 @@ wget http://getcomposer.org/composer.phar
 php composer.phar install
 #vendor/bin/propel reverse "mysql:host=localhost;dbname=example_com;user=example_user;password=H7{\"Qj1n>P" --database-name=example_com --output-dir=.
 
+# Edit vendor/propel/propel/src/Propel/Generator/Command/InitCommand.php
+# To fix https://github.com/propelorm/Propel2/issues/1141
+
 [sbn@localhost example.com]$ vendor/bin/propel init
 
                         
