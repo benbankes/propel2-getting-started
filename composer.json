@@ -3,6 +3,6 @@
         "classmap": ["generated-classes/"]
     },
     "require": {
-        "propel/propel": "~2.0@dev"
+        "propel/propel": "dev-master#a572cda8e680c0f78d8d21cf2e21b034261d9c6b"
     }
 }

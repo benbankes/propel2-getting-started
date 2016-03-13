@@ -4,8 +4,8 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "7b77c47c0ea77dc0b28384bf7982cc11",
-    "content-hash": "78a3c1002aa75ddd3efb51dc08755fe6",
+    "hash": "68a905062168daeac4b3fac11545f6bf",
+    "content-hash": "ad0ef83f70061becc10e42a8611be7d1",
     "packages": [
         {
             "name": "propel/propel",
@@ -13,12 +13,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/propelorm/Propel2.git",
-                "reference": "5e88e6358c8db28435087fbb2c7b3c3120ea80b4"
+                "reference": "a572cda8e680c0f78d8d21cf2e21b034261d9c6b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/propelorm/Propel2/zipball/5e88e6358c8db28435087fbb2c7b3c3120ea80b4",
-                "reference": "5e88e6358c8db28435087fbb2c7b3c3120ea80b4",
+                "url": "https://api.github.com/repos/propelorm/Propel2/zipball/a572cda8e680c0f78d8d21cf2e21b034261d9c6b",
+                "reference": "a572cda8e680c0f78d8d21cf2e21b034261d9c6b",
                 "shasum": ""
             },
             "require": {
@@ -70,7 +70,7 @@
                 "orm",
                 "persistence"
             ],
-            "time": "2016-03-11 16:50:35"
+            "time": "2016-03-13 15:29:12"
         },
         {
             "name": "psr/log",
