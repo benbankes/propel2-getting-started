@@ -68,4 +68,9 @@
       <parameter name="Engine" value="InnoDB"/>
     </vendor>
   </table>
+  <table name="category">
+    <column name="id" type="integer" primaryKey="true"
+        autoIncrement="true" />
+    <column name="title" type="varchar" required="true" />
+  </table>
 </database>
