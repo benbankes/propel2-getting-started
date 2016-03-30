@@ -72,5 +72,6 @@
     <column name="id" type="integer" primaryKey="true"
         autoIncrement="true" />
     <column name="title" type="varchar" required="true" />
+    <behavior name="nested_set" />
   </table>
 </database>

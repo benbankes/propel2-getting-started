@@ -8,13 +8,16 @@ use Propel\Runtime\Propel;
 use Propel\Runtime\ActiveQuery\Criteria;
 use Propel\Runtime\ActiveQuery\ModelCriteria;
 use Propel\Runtime\ActiveRecord\ActiveRecordInterface;
+use Propel\Runtime\ActiveRecord\NestedSetRecursiveIterator;
 use Propel\Runtime\Collection\Collection;
+use Propel\Runtime\Collection\ObjectCollection;
 use Propel\Runtime\Connection\ConnectionInterface;
 use Propel\Runtime\Exception\BadMethodCallException;
 use Propel\Runtime\Exception\LogicException;
 use Propel\Runtime\Exception\PropelException;
 use Propel\Runtime\Map\TableMap;
 use Propel\Runtime\Parser\AbstractParser;
+use Uphpu\Propel2Quickstart\Category as ChildCategory;
 use Uphpu\Propel2Quickstart\CategoryQuery as ChildCategoryQuery;
 use Uphpu\Propel2Quickstart\Map\CategoryTableMap;
 
@@ -74,12 +77,68 @@ abstract class Category implements ActiveRecordInterface
     protected $title;
 
     /**
+     * The value for the tree_left field.
+     *
+     * @var        int
+     */
+    protected $tree_left;
+
+    /**
+     * The value for the tree_right field.
+     *
+     * @var        int
+     */
+    protected $tree_right;
+
+    /**
+     * The value for the tree_level field.
+     *
+     * @var        int
+     */
+    protected $tree_level;
+
+    /**
      * Flag to prevent endless save loop, if this object is referenced
      * by another object which falls in this transaction.
      *
      * @var boolean
      */
     protected $alreadyInSave = false;
+
+    // nested_set behavior
+
+    /**
+     * Queries to be executed in the save transaction
+     * @var        array
+     */
+    protected $nestedSetQueries = array();
+
+    /**
+     * Internal cache for children nodes
+     * @var        null|ObjectCollection
+     */
+    protected $collNestedSetChildren = null;
+
+    /**
+     * Internal cache for parent node
+     * @var        null|ChildCategory
+     */
+    protected $aNestedSetParent = null;
+
+    /**
+     * Left column for the set
+     */
+    const LEFT_COL = 'category.tree_left';
+
+    /**
+     * Right column for the set
+     */
+    const RIGHT_COL = 'category.tree_right';
+
+    /**
+     * Level column for the set
+     */
+    const LEVEL_COL = 'category.tree_level';
 
     /**
      * Initializes internal state of Uphpu\Propel2Quickstart\Base\Category object.
@@ -327,6 +386,36 @@ abstract class Category implements ActiveRecordInterface
     }
 
     /**
+     * Get the [tree_left] column value.
+     *
+     * @return int
+     */
+    public function getTreeLeft()
+    {
+        return $this->tree_left;
+    }
+
+    /**
+     * Get the [tree_right] column value.
+     *
+     * @return int
+     */
+    public function getTreeRight()
+    {
+        return $this->tree_right;
+    }
+
+    /**
+     * Get the [tree_level] column value.
+     *
+     * @return int
+     */
+    public function getTreeLevel()
+    {
+        return $this->tree_level;
+    }
+
+    /**
      * Set the value of [id] column.
      *
      * @param int $v new value
@@ -365,6 +454,66 @@ abstract class Category implements ActiveRecordInterface
 
         return $this;
     } // setTitle()
+
+    /**
+     * Set the value of [tree_left] column.
+     *
+     * @param int $v new value
+     * @return $this|\Uphpu\Propel2Quickstart\Category The current object (for fluent API support)
+     */
+    public function setTreeLeft($v)
+    {
+        if ($v !== null) {
+            $v = (int) $v;
+        }
+
+        if ($this->tree_left !== $v) {
+            $this->tree_left = $v;
+            $this->modifiedColumns[CategoryTableMap::COL_TREE_LEFT] = true;
+        }
+
+        return $this;
+    } // setTreeLeft()
+
+    /**
+     * Set the value of [tree_right] column.
+     *
+     * @param int $v new value
+     * @return $this|\Uphpu\Propel2Quickstart\Category The current object (for fluent API support)
+     */
+    public function setTreeRight($v)
+    {
+        if ($v !== null) {
+            $v = (int) $v;
+        }
+
+        if ($this->tree_right !== $v) {
+            $this->tree_right = $v;
+            $this->modifiedColumns[CategoryTableMap::COL_TREE_RIGHT] = true;
+        }
+
+        return $this;
+    } // setTreeRight()
+
+    /**
+     * Set the value of [tree_level] column.
+     *
+     * @param int $v new value
+     * @return $this|\Uphpu\Propel2Quickstart\Category The current object (for fluent API support)
+     */
+    public function setTreeLevel($v)
+    {
+        if ($v !== null) {
+            $v = (int) $v;
+        }
+
+        if ($this->tree_level !== $v) {
+            $this->tree_level = $v;
+            $this->modifiedColumns[CategoryTableMap::COL_TREE_LEVEL] = true;
+        }
+
+        return $this;
+    } // setTreeLevel()
 
     /**
      * Indicates whether the columns in this object are only set to default values.
@@ -407,6 +556,15 @@ abstract class Category implements ActiveRecordInterface
 
             $col = $row[TableMap::TYPE_NUM == $indexType ? 1 + $startcol : CategoryTableMap::translateFieldName('Title', TableMap::TYPE_PHPNAME, $indexType)];
             $this->title = (null !== $col) ? (string) $col : null;
+
+            $col = $row[TableMap::TYPE_NUM == $indexType ? 2 + $startcol : CategoryTableMap::translateFieldName('TreeLeft', TableMap::TYPE_PHPNAME, $indexType)];
+            $this->tree_left = (null !== $col) ? (int) $col : null;
+
+            $col = $row[TableMap::TYPE_NUM == $indexType ? 3 + $startcol : CategoryTableMap::translateFieldName('TreeRight', TableMap::TYPE_PHPNAME, $indexType)];
+            $this->tree_right = (null !== $col) ? (int) $col : null;
+
+            $col = $row[TableMap::TYPE_NUM == $indexType ? 4 + $startcol : CategoryTableMap::translateFieldName('TreeLevel', TableMap::TYPE_PHPNAME, $indexType)];
+            $this->tree_level = (null !== $col) ? (int) $col : null;
             $this->resetModified();
 
             $this->setNew(false);
@@ -415,7 +573,7 @@ abstract class Category implements ActiveRecordInterface
                 $this->ensureConsistency();
             }
 
-            return $startcol + 2; // 2 = CategoryTableMap::NUM_HYDRATE_COLUMNS.
+            return $startcol + 5; // 5 = CategoryTableMap::NUM_HYDRATE_COLUMNS.
 
         } catch (Exception $e) {
             throw new PropelException(sprintf('Error populating %s object', '\\Uphpu\\Propel2Quickstart\\Category'), 0, $e);
@@ -502,9 +660,24 @@ abstract class Category implements ActiveRecordInterface
             $deleteQuery = ChildCategoryQuery::create()
                 ->filterByPrimaryKey($this->getPrimaryKey());
             $ret = $this->preDelete($con);
+            // nested_set behavior
+            if ($this->isRoot()) {
+                throw new PropelException('Deletion of a root node is disabled for nested sets. Use ChildCategoryQuery::deleteTree() instead to delete an entire tree');
+            }
+
+            if ($this->isInTree()) {
+                $this->deleteDescendants($con);
+            }
+
             if ($ret) {
                 $deleteQuery->delete($con);
                 $this->postDelete($con);
+                // nested_set behavior
+                if ($this->isInTree()) {
+                    // fill up the room that was used by the node
+                    ChildCategoryQuery::shiftRLValues(-2, $this->getRightValue() + 1, null, $con);
+                }
+
                 $this->setDeleted(true);
             }
         });
@@ -536,6 +709,17 @@ abstract class Category implements ActiveRecordInterface
         return $con->transaction(function () use ($con) {
             $ret = $this->preSave($con);
             $isInsert = $this->isNew();
+            // nested_set behavior
+            if ($this->isNew() && $this->isRoot()) {
+                // check if no other root exist in, the tree
+                $rootExists = ChildCategoryQuery::create()
+                    ->addUsingAlias(ChildCategory::LEFT_COL, 1, Criteria::EQUAL)
+                    ->exists($con);
+                if ($rootExists) {
+                        throw new PropelException('A root node already exists in this tree. To allow multiple root nodes, add the `use_scope` parameter in the nested_set behavior tag.');
+                }
+            }
+            $this->processNestedSetQueries($con);
             if ($isInsert) {
                 $ret = $ret && $this->preInsert($con);
             } else {
@@ -618,6 +802,15 @@ abstract class Category implements ActiveRecordInterface
         if ($this->isColumnModified(CategoryTableMap::COL_TITLE)) {
             $modifiedColumns[':p' . $index++]  = 'title';
         }
+        if ($this->isColumnModified(CategoryTableMap::COL_TREE_LEFT)) {
+            $modifiedColumns[':p' . $index++]  = 'tree_left';
+        }
+        if ($this->isColumnModified(CategoryTableMap::COL_TREE_RIGHT)) {
+            $modifiedColumns[':p' . $index++]  = 'tree_right';
+        }
+        if ($this->isColumnModified(CategoryTableMap::COL_TREE_LEVEL)) {
+            $modifiedColumns[':p' . $index++]  = 'tree_level';
+        }
 
         $sql = sprintf(
             'INSERT INTO category (%s) VALUES (%s)',
@@ -634,6 +827,15 @@ abstract class Category implements ActiveRecordInterface
                         break;
                     case 'title':
                         $stmt->bindValue($identifier, $this->title, PDO::PARAM_STR);
+                        break;
+                    case 'tree_left':
+                        $stmt->bindValue($identifier, $this->tree_left, PDO::PARAM_INT);
+                        break;
+                    case 'tree_right':
+                        $stmt->bindValue($identifier, $this->tree_right, PDO::PARAM_INT);
+                        break;
+                    case 'tree_level':
+                        $stmt->bindValue($identifier, $this->tree_level, PDO::PARAM_INT);
                         break;
                 }
             }
@@ -703,6 +905,15 @@ abstract class Category implements ActiveRecordInterface
             case 1:
                 return $this->getTitle();
                 break;
+            case 2:
+                return $this->getTreeLeft();
+                break;
+            case 3:
+                return $this->getTreeRight();
+                break;
+            case 4:
+                return $this->getTreeLevel();
+                break;
             default:
                 return null;
                 break;
@@ -734,6 +945,9 @@ abstract class Category implements ActiveRecordInterface
         $result = array(
             $keys[0] => $this->getId(),
             $keys[1] => $this->getTitle(),
+            $keys[2] => $this->getTreeLeft(),
+            $keys[3] => $this->getTreeRight(),
+            $keys[4] => $this->getTreeLevel(),
         );
         $virtualColumns = $this->virtualColumns;
         foreach ($virtualColumns as $key => $virtualColumn) {
@@ -779,6 +993,15 @@ abstract class Category implements ActiveRecordInterface
             case 1:
                 $this->setTitle($value);
                 break;
+            case 2:
+                $this->setTreeLeft($value);
+                break;
+            case 3:
+                $this->setTreeRight($value);
+                break;
+            case 4:
+                $this->setTreeLevel($value);
+                break;
         } // switch()
 
         return $this;
@@ -810,6 +1033,15 @@ abstract class Category implements ActiveRecordInterface
         }
         if (array_key_exists($keys[1], $arr)) {
             $this->setTitle($arr[$keys[1]]);
+        }
+        if (array_key_exists($keys[2], $arr)) {
+            $this->setTreeLeft($arr[$keys[2]]);
+        }
+        if (array_key_exists($keys[3], $arr)) {
+            $this->setTreeRight($arr[$keys[3]]);
+        }
+        if (array_key_exists($keys[4], $arr)) {
+            $this->setTreeLevel($arr[$keys[4]]);
         }
     }
 
@@ -857,6 +1089,15 @@ abstract class Category implements ActiveRecordInterface
         }
         if ($this->isColumnModified(CategoryTableMap::COL_TITLE)) {
             $criteria->add(CategoryTableMap::COL_TITLE, $this->title);
+        }
+        if ($this->isColumnModified(CategoryTableMap::COL_TREE_LEFT)) {
+            $criteria->add(CategoryTableMap::COL_TREE_LEFT, $this->tree_left);
+        }
+        if ($this->isColumnModified(CategoryTableMap::COL_TREE_RIGHT)) {
+            $criteria->add(CategoryTableMap::COL_TREE_RIGHT, $this->tree_right);
+        }
+        if ($this->isColumnModified(CategoryTableMap::COL_TREE_LEVEL)) {
+            $criteria->add(CategoryTableMap::COL_TREE_LEVEL, $this->tree_level);
         }
 
         return $criteria;
@@ -945,6 +1186,9 @@ abstract class Category implements ActiveRecordInterface
     public function copyInto($copyObj, $deepCopy = false, $makeNew = true)
     {
         $copyObj->setTitle($this->getTitle());
+        $copyObj->setTreeLeft($this->getTreeLeft());
+        $copyObj->setTreeRight($this->getTreeRight());
+        $copyObj->setTreeLevel($this->getTreeLevel());
         if ($makeNew) {
             $copyObj->setNew(true);
             $copyObj->setId(NULL); // this is a auto-increment column, so set to default value
@@ -982,6 +1226,9 @@ abstract class Category implements ActiveRecordInterface
     {
         $this->id = null;
         $this->title = null;
+        $this->tree_left = null;
+        $this->tree_right = null;
+        $this->tree_level = null;
         $this->alreadyInSave = false;
         $this->clearAllReferences();
         $this->resetModified();
@@ -1002,6 +1249,9 @@ abstract class Category implements ActiveRecordInterface
         if ($deep) {
         } // if ($deep)
 
+        // nested_set behavior
+        $this->collNestedSetChildren = null;
+        $this->aNestedSetParent = null;
     }
 
     /**
@@ -1012,6 +1262,842 @@ abstract class Category implements ActiveRecordInterface
     public function __toString()
     {
         return (string) $this->exportTo(CategoryTableMap::DEFAULT_STRING_FORMAT);
+    }
+
+    // nested_set behavior
+
+    /**
+     * Execute queries that were saved to be run inside the save transaction
+     *
+     * @param  ConnectionInterface $con Connection to use.
+     */
+    protected function processNestedSetQueries(ConnectionInterface $con)
+    {
+        foreach ($this->nestedSetQueries as $query) {
+            $query['arguments'][] = $con;
+            call_user_func_array($query['callable'], $query['arguments']);
+        }
+        $this->nestedSetQueries = array();
+    }
+
+    /**
+     * Proxy getter method for the left value of the nested set model.
+     * It provides a generic way to get the value, whatever the actual column name is.
+     *
+     * @return     int The nested set left value
+     */
+    public function getLeftValue()
+    {
+        return $this->tree_left;
+    }
+
+    /**
+     * Proxy getter method for the right value of the nested set model.
+     * It provides a generic way to get the value, whatever the actual column name is.
+     *
+     * @return     int The nested set right value
+     */
+    public function getRightValue()
+    {
+        return $this->tree_right;
+    }
+
+    /**
+     * Proxy getter method for the level value of the nested set model.
+     * It provides a generic way to get the value, whatever the actual column name is.
+     *
+     * @return     int The nested set level value
+     */
+    public function getLevel()
+    {
+        return $this->tree_level;
+    }
+
+    /**
+     * Proxy setter method for the left value of the nested set model.
+     * It provides a generic way to set the value, whatever the actual column name is.
+     *
+     * @param  int $v The nested set left value
+     * @return $this|ChildCategory The current object (for fluent API support)
+     */
+    public function setLeftValue($v)
+    {
+        return $this->setTreeLeft($v);
+    }
+
+    /**
+     * Proxy setter method for the right value of the nested set model.
+     * It provides a generic way to set the value, whatever the actual column name is.
+     *
+     * @param      int $v The nested set right value
+     * @return     $this|ChildCategory The current object (for fluent API support)
+     */
+    public function setRightValue($v)
+    {
+        return $this->setTreeRight($v);
+    }
+
+    /**
+     * Proxy setter method for the level value of the nested set model.
+     * It provides a generic way to set the value, whatever the actual column name is.
+     *
+     * @param      int $v The nested set level value
+     * @return     $this|ChildCategory The current object (for fluent API support)
+     */
+    public function setLevel($v)
+    {
+        return $this->setTreeLevel($v);
+    }
+
+    /**
+     * Creates the supplied node as the root node.
+     *
+     * @return     $this|ChildCategory The current object (for fluent API support)
+     * @throws     PropelException
+     */
+    public function makeRoot()
+    {
+        if ($this->getLeftValue() || $this->getRightValue()) {
+            throw new PropelException('Cannot turn an existing node into a root node.');
+        }
+
+        $this->setLeftValue(1);
+        $this->setRightValue(2);
+        $this->setLevel(0);
+
+        return $this;
+    }
+
+    /**
+     * Tests if object is a node, i.e. if it is inserted in the tree
+     *
+     * @return     bool
+     */
+    public function isInTree()
+    {
+        return $this->getLeftValue() > 0 && $this->getRightValue() > $this->getLeftValue();
+    }
+
+    /**
+     * Tests if node is a root
+     *
+     * @return     bool
+     */
+    public function isRoot()
+    {
+        return $this->isInTree() && $this->getLeftValue() == 1;
+    }
+
+    /**
+     * Tests if node is a leaf
+     *
+     * @return     bool
+     */
+    public function isLeaf()
+    {
+        return $this->isInTree() &&  ($this->getRightValue() - $this->getLeftValue()) == 1;
+    }
+
+    /**
+     * Tests if node is a descendant of another node
+     *
+     * @param      ChildCategory $parent Propel node object
+     * @return     bool
+     */
+    public function isDescendantOf(ChildCategory $parent)
+    {
+        return $this->isInTree() && $this->getLeftValue() > $parent->getLeftValue() && $this->getRightValue() < $parent->getRightValue();
+    }
+
+    /**
+     * Tests if node is a ancestor of another node
+     *
+     * @param      ChildCategory $child Propel node object
+     * @return     bool
+     */
+    public function isAncestorOf(ChildCategory $child)
+    {
+        return $child->isDescendantOf($this);
+    }
+
+    /**
+     * Tests if object has an ancestor
+     *
+     * @return boolean
+     */
+    public function hasParent()
+    {
+        return $this->getLevel() > 0;
+    }
+
+    /**
+     * Sets the cache for parent node of the current object.
+     * Warning: this does not move the current object in the tree.
+     * Use moveTofirstChildOf() or moveToLastChildOf() for that purpose
+     *
+     * @param      ChildCategory $parent
+     * @return     $this|ChildCategory The current object, for fluid interface
+     */
+    public function setParent(ChildCategory $parent = null)
+    {
+        $this->aNestedSetParent = $parent;
+
+        return $this;
+    }
+
+    /**
+     * Gets parent node for the current object if it exists
+     * The result is cached so further calls to the same method don't issue any queries
+     *
+     * @param  ConnectionInterface $con Connection to use.
+     * @return ChildCategory|null Propel object if exists else null
+     */
+    public function getParent(ConnectionInterface $con = null)
+    {
+        if (null === $this->aNestedSetParent && $this->hasParent()) {
+            $this->aNestedSetParent = ChildCategoryQuery::create()
+                ->ancestorsOf($this)
+                ->orderByLevel(true)
+                ->findOne($con);
+        }
+
+        return $this->aNestedSetParent;
+    }
+
+    /**
+     * Determines if the node has previous sibling
+     *
+     * @param      ConnectionInterface $con Connection to use.
+     * @return     bool
+     */
+    public function hasPrevSibling(ConnectionInterface $con = null)
+    {
+        if (!ChildCategoryQuery::isValid($this)) {
+            return false;
+        }
+
+        return ChildCategoryQuery::create()
+            ->filterByTreeRight($this->getLeftValue() - 1)
+            ->exists($con);
+    }
+
+    /**
+     * Gets previous sibling for the given node if it exists
+     *
+     * @param      ConnectionInterface $con Connection to use.
+     * @return     ChildCategory|null         Propel object if exists else null
+     */
+    public function getPrevSibling(ConnectionInterface $con = null)
+    {
+        return ChildCategoryQuery::create()
+            ->filterByTreeRight($this->getLeftValue() - 1)
+            ->findOne($con);
+    }
+
+    /**
+     * Determines if the node has next sibling
+     *
+     * @param      ConnectionInterface $con Connection to use.
+     * @return     bool
+     */
+    public function hasNextSibling(ConnectionInterface $con = null)
+    {
+        if (!ChildCategoryQuery::isValid($this)) {
+            return false;
+        }
+
+        return ChildCategoryQuery::create()
+            ->filterByTreeLeft($this->getRightValue() + 1)
+            ->exists($con);
+    }
+
+    /**
+     * Gets next sibling for the given node if it exists
+     *
+     * @param      ConnectionInterface $con Connection to use.
+     * @return     ChildCategory|null         Propel object if exists else null
+     */
+    public function getNextSibling(ConnectionInterface $con = null)
+    {
+        return ChildCategoryQuery::create()
+            ->filterByTreeLeft($this->getRightValue() + 1)
+            ->findOne($con);
+    }
+
+    /**
+     * Clears out the $collNestedSetChildren collection
+     *
+     * This does not modify the database; however, it will remove any associated objects, causing
+     * them to be refetched by subsequent calls to accessor method.
+     *
+     * @return     void
+     */
+    public function clearNestedSetChildren()
+    {
+        $this->collNestedSetChildren = null;
+    }
+
+    /**
+     * Initializes the $collNestedSetChildren collection.
+     *
+     * @return     void
+     */
+    public function initNestedSetChildren()
+    {
+        $collectionClassName = \Uphpu\Propel2Quickstart\Map\CategoryTableMap::getTableMap()->getCollectionClassName();
+
+        $this->collNestedSetChildren = new $collectionClassName;
+        $this->collNestedSetChildren->setModel('\Uphpu\Propel2Quickstart\Category');
+    }
+
+    /**
+     * Adds an element to the internal $collNestedSetChildren collection.
+     * Beware that this doesn't insert a node in the tree.
+     * This method is only used to facilitate children hydration.
+     *
+     * @param      ChildCategory $category
+     *
+     * @return     void
+     */
+    public function addNestedSetChild(ChildCategory $category)
+    {
+        if (null === $this->collNestedSetChildren) {
+            $this->initNestedSetChildren();
+        }
+        if (!in_array($category, $this->collNestedSetChildren->getArrayCopy(), true)) { // only add it if the **same** object is not already associated
+            $this->collNestedSetChildren[]= $category;
+            $category->setParent($this);
+        }
+    }
+
+    /**
+     * Tests if node has children
+     *
+     * @return     bool
+     */
+    public function hasChildren()
+    {
+        return ($this->getRightValue() - $this->getLeftValue()) > 1;
+    }
+
+    /**
+     * Gets the children of the given node
+     *
+     * @param      Criteria  $criteria Criteria to filter results.
+     * @param      ConnectionInterface $con Connection to use.
+     * @return     ObjectCollection|ChildCategory[] List of ChildCategory objects
+     */
+    public function getChildren(Criteria $criteria = null, ConnectionInterface $con = null)
+    {
+        if (null === $this->collNestedSetChildren || null !== $criteria) {
+            if ($this->isLeaf() || ($this->isNew() && null === $this->collNestedSetChildren)) {
+                // return empty collection
+                $this->initNestedSetChildren();
+            } else {
+                $collNestedSetChildren = ChildCategoryQuery::create(null, $criteria)
+                    ->childrenOf($this)
+                    ->orderByBranch()
+                    ->find($con);
+                if (null !== $criteria) {
+                    return $collNestedSetChildren;
+                }
+                $this->collNestedSetChildren = $collNestedSetChildren;
+            }
+        }
+
+        return $this->collNestedSetChildren;
+    }
+
+    /**
+     * Gets number of children for the given node
+     *
+     * @param      Criteria  $criteria Criteria to filter results.
+     * @param      ConnectionInterface $con Connection to use.
+     * @return     int       Number of children
+     */
+    public function countChildren(Criteria $criteria = null, ConnectionInterface $con = null)
+    {
+        if (null === $this->collNestedSetChildren || null !== $criteria) {
+            if ($this->isLeaf() || ($this->isNew() && null === $this->collNestedSetChildren)) {
+                return 0;
+            } else {
+                return ChildCategoryQuery::create(null, $criteria)
+                    ->childrenOf($this)
+                    ->count($con);
+            }
+        } else {
+            return count($this->collNestedSetChildren);
+        }
+    }
+
+    /**
+     * Gets the first child of the given node
+     *
+     * @param      Criteria $criteria Criteria to filter results.
+     * @param      ConnectionInterface $con Connection to use.
+     * @return     ChildCategory|null First child or null if this is a leaf
+     */
+    public function getFirstChild(Criteria $criteria = null, ConnectionInterface $con = null)
+    {
+        if ($this->isLeaf()) {
+            return null;
+        } else {
+            return ChildCategoryQuery::create(null, $criteria)
+                ->childrenOf($this)
+                ->orderByBranch()
+                ->findOne($con);
+        }
+    }
+
+    /**
+     * Gets the last child of the given node
+     *
+     * @param      Criteria $criteria Criteria to filter results.
+     * @param      ConnectionInterface $con Connection to use.
+     * @return     ChildCategory|null Last child or null if this is a leaf
+     */
+    public function getLastChild(Criteria $criteria = null, ConnectionInterface $con = null)
+    {
+        if ($this->isLeaf()) {
+            return null;
+        } else {
+            return ChildCategoryQuery::create(null, $criteria)
+                ->childrenOf($this)
+                ->orderByBranch(true)
+                ->findOne($con);
+        }
+    }
+
+    /**
+     * Gets the siblings of the given node
+     *
+     * @param boolean             $includeNode Whether to include the current node or not
+     * @param Criteria            $criteria Criteria to filter results.
+     * @param ConnectionInterface $con Connection to use.
+     *
+     * @return ObjectCollection|ChildCategory[] List of ChildCategory objects
+     */
+    public function getSiblings($includeNode = false, Criteria $criteria = null, ConnectionInterface $con = null)
+    {
+        if ($this->isRoot()) {
+            return array();
+        } else {
+            $query = ChildCategoryQuery::create(null, $criteria)
+                ->childrenOf($this->getParent($con))
+                ->orderByBranch();
+            if (!$includeNode) {
+                $query->prune($this);
+            }
+
+            return $query->find($con);
+        }
+    }
+
+    /**
+     * Gets descendants for the given node
+     *
+     * @param      Criteria $criteria Criteria to filter results.
+     * @param      ConnectionInterface $con Connection to use.
+     * @return     ObjectCollection|ChildCategory[] List of ChildCategory objects
+     */
+    public function getDescendants(Criteria $criteria = null, ConnectionInterface $con = null)
+    {
+        if ($this->isLeaf()) {
+            return array();
+        } else {
+            return ChildCategoryQuery::create(null, $criteria)
+                ->descendantsOf($this)
+                ->orderByBranch()
+                ->find($con);
+        }
+    }
+
+    /**
+     * Gets number of descendants for the given node
+     *
+     * @param      Criteria $criteria Criteria to filter results.
+     * @param      ConnectionInterface $con Connection to use.
+     * @return     int         Number of descendants
+     */
+    public function countDescendants(Criteria $criteria = null, ConnectionInterface $con = null)
+    {
+        if ($this->isLeaf()) {
+            // save one query
+            return 0;
+        } else {
+            return ChildCategoryQuery::create(null, $criteria)
+                ->descendantsOf($this)
+                ->count($con);
+        }
+    }
+
+    /**
+     * Gets descendants for the given node, plus the current node
+     *
+     * @param      Criteria $criteria Criteria to filter results.
+     * @param      ConnectionInterface $con Connection to use.
+     * @return     ObjectCollection|ChildCategory[] List of ChildCategory objects
+     */
+    public function getBranch(Criteria $criteria = null, ConnectionInterface $con = null)
+    {
+        return ChildCategoryQuery::create(null, $criteria)
+            ->branchOf($this)
+            ->orderByBranch()
+            ->find($con);
+    }
+
+    /**
+     * Gets ancestors for the given node, starting with the root node
+     * Use it for breadcrumb paths for instance
+     *
+     * @param      Criteria $criteria Criteria to filter results.
+     * @param      ConnectionInterface $con Connection to use.
+     * @return     ObjectCollection|ChildCategory[] List of ChildCategory objects
+     */
+    public function getAncestors(Criteria $criteria = null, ConnectionInterface $con = null)
+    {
+        if ($this->isRoot()) {
+            // save one query
+            return array();
+        } else {
+            return ChildCategoryQuery::create(null, $criteria)
+                ->ancestorsOf($this)
+                ->orderByBranch()
+                ->find($con);
+        }
+    }
+
+    /**
+     * Inserts the given $child node as first child of current
+     * The modifications in the current object and the tree
+     * are not persisted until the child object is saved.
+     *
+     * @param      ChildCategory $child    Propel object for child node
+     *
+     * @return     $this|ChildCategory The current Propel object
+     */
+    public function addChild(ChildCategory $child)
+    {
+        if ($this->isNew()) {
+            throw new PropelException('A ChildCategory object must not be new to accept children.');
+        }
+        $child->insertAsFirstChildOf($this);
+
+        return $this;
+    }
+
+    /**
+     * Inserts the current node as first child of given $parent node
+     * The modifications in the current object and the tree
+     * are not persisted until the current object is saved.
+     *
+     * @param      ChildCategory $parent    Propel object for parent node
+     *
+     * @return     $this|ChildCategory The current Propel object
+     */
+    public function insertAsFirstChildOf(ChildCategory $parent)
+    {
+        if ($this->isInTree()) {
+            throw new PropelException('A ChildCategory object must not already be in the tree to be inserted. Use the moveToFirstChildOf() instead.');
+        }
+        $left = $parent->getLeftValue() + 1;
+        // Update node properties
+        $this->setLeftValue($left);
+        $this->setRightValue($left + 1);
+        $this->setLevel($parent->getLevel() + 1);
+        // update the children collection of the parent
+        $parent->addNestedSetChild($this);
+
+        // Keep the tree modification query for the save() transaction
+        $this->nestedSetQueries[] = array(
+            'callable'  => array('\Uphpu\Propel2Quickstart\CategoryQuery', 'makeRoomForLeaf'),
+            'arguments' => array($left, $this->isNew() ? null : $this)
+        );
+
+        return $this;
+    }
+
+    /**
+     * Inserts the current node as last child of given $parent node
+     * The modifications in the current object and the tree
+     * are not persisted until the current object is saved.
+     *
+     * @param  ChildCategory $parent Propel object for parent node
+     * @return $this|ChildCategory The current Propel object
+     */
+    public function insertAsLastChildOf(ChildCategory $parent)
+    {
+        if ($this->isInTree()) {
+            throw new PropelException(
+                'A ChildCategory object must not already be in the tree to be inserted. Use the moveToLastChildOf() instead.'
+            );
+        }
+
+        $left = $parent->getRightValue();
+        // Update node properties
+        $this->setLeftValue($left);
+        $this->setRightValue($left + 1);
+        $this->setLevel($parent->getLevel() + 1);
+
+        // update the children collection of the parent
+        $parent->addNestedSetChild($this);
+
+        // Keep the tree modification query for the save() transaction
+        $this->nestedSetQueries []= array(
+            'callable'  => array('\Uphpu\Propel2Quickstart\CategoryQuery', 'makeRoomForLeaf'),
+            'arguments' => array($left, $this->isNew() ? null : $this)
+        );
+
+        return $this;
+    }
+
+    /**
+     * Inserts the current node as prev sibling given $sibling node
+     * The modifications in the current object and the tree
+     * are not persisted until the current object is saved.
+     *
+     * @param      ChildCategory $sibling    Propel object for parent node
+     *
+     * @return     $this|ChildCategory The current Propel object
+     */
+    public function insertAsPrevSiblingOf(ChildCategory $sibling)
+    {
+        if ($this->isInTree()) {
+            throw new PropelException('A ChildCategory object must not already be in the tree to be inserted. Use the moveToPrevSiblingOf() instead.');
+        }
+        $left = $sibling->getLeftValue();
+        // Update node properties
+        $this->setLeftValue($left);
+        $this->setRightValue($left + 1);
+        $this->setLevel($sibling->getLevel());
+        // Keep the tree modification query for the save() transaction
+        $this->nestedSetQueries []= array(
+            'callable'  => array('\Uphpu\Propel2Quickstart\CategoryQuery', 'makeRoomForLeaf'),
+            'arguments' => array($left, $this->isNew() ? null : $this)
+        );
+
+        return $this;
+    }
+
+    /**
+     * Inserts the current node as next sibling given $sibling node
+     * The modifications in the current object and the tree
+     * are not persisted until the current object is saved.
+     *
+     * @param      ChildCategory $sibling    Propel object for parent node
+     *
+     * @return     $this|ChildCategory The current Propel object
+     */
+    public function insertAsNextSiblingOf(ChildCategory $sibling)
+    {
+        if ($this->isInTree()) {
+            throw new PropelException('A ChildCategory object must not already be in the tree to be inserted. Use the moveToNextSiblingOf() instead.');
+        }
+        $left = $sibling->getRightValue() + 1;
+        // Update node properties
+        $this->setLeftValue($left);
+        $this->setRightValue($left + 1);
+        $this->setLevel($sibling->getLevel());
+        // Keep the tree modification query for the save() transaction
+        $this->nestedSetQueries []= array(
+            'callable'  => array('\Uphpu\Propel2Quickstart\CategoryQuery', 'makeRoomForLeaf'),
+            'arguments' => array($left, $this->isNew() ? null : $this)
+        );
+
+        return $this;
+    }
+
+    /**
+     * Moves current node and its subtree to be the first child of $parent
+     * The modifications in the current object and the tree are immediate
+     *
+     * @param      ChildCategory $parent    Propel object for parent node
+     * @param      ConnectionInterface $con    Connection to use.
+     *
+     * @return     $this|ChildCategory The current Propel object
+     */
+    public function moveToFirstChildOf(ChildCategory $parent, ConnectionInterface $con = null)
+    {
+        if (!$this->isInTree()) {
+            throw new PropelException('A ChildCategory object must be already in the tree to be moved. Use the insertAsFirstChildOf() instead.');
+        }
+        if ($parent->isDescendantOf($this)) {
+            throw new PropelException('Cannot move a node as child of one of its subtree nodes.');
+        }
+
+        $this->moveSubtreeTo($parent->getLeftValue() + 1, $parent->getLevel() - $this->getLevel() + 1, $con);
+
+        return $this;
+    }
+
+    /**
+     * Moves current node and its subtree to be the last child of $parent
+     * The modifications in the current object and the tree are immediate
+     *
+     * @param      ChildCategory $parent    Propel object for parent node
+     * @param      ConnectionInterface $con    Connection to use.
+     *
+     * @return     $this|ChildCategory The current Propel object
+     */
+    public function moveToLastChildOf(ChildCategory $parent, ConnectionInterface $con = null)
+    {
+        if (!$this->isInTree()) {
+            throw new PropelException('A ChildCategory object must be already in the tree to be moved. Use the insertAsLastChildOf() instead.');
+        }
+        if ($parent->isDescendantOf($this)) {
+            throw new PropelException('Cannot move a node as child of one of its subtree nodes.');
+        }
+
+        $this->moveSubtreeTo($parent->getRightValue(), $parent->getLevel() - $this->getLevel() + 1, $con);
+
+        return $this;
+    }
+
+    /**
+     * Moves current node and its subtree to be the previous sibling of $sibling
+     * The modifications in the current object and the tree are immediate
+     *
+     * @param      ChildCategory $sibling    Propel object for sibling node
+     * @param      ConnectionInterface $con    Connection to use.
+     *
+     * @return     $this|ChildCategory The current Propel object
+     */
+    public function moveToPrevSiblingOf(ChildCategory $sibling, ConnectionInterface $con = null)
+    {
+        if (!$this->isInTree()) {
+            throw new PropelException('A ChildCategory object must be already in the tree to be moved. Use the insertAsPrevSiblingOf() instead.');
+        }
+        if ($sibling->isRoot()) {
+            throw new PropelException('Cannot move to previous sibling of a root node.');
+        }
+        if ($sibling->isDescendantOf($this)) {
+            throw new PropelException('Cannot move a node as sibling of one of its subtree nodes.');
+        }
+
+        $this->moveSubtreeTo($sibling->getLeftValue(), $sibling->getLevel() - $this->getLevel(), $con);
+
+        return $this;
+    }
+
+    /**
+     * Moves current node and its subtree to be the next sibling of $sibling
+     * The modifications in the current object and the tree are immediate
+     *
+     * @param      ChildCategory $sibling    Propel object for sibling node
+     * @param      ConnectionInterface $con    Connection to use.
+     *
+     * @return     $this|ChildCategory The current Propel object
+     */
+    public function moveToNextSiblingOf(ChildCategory $sibling, ConnectionInterface $con = null)
+    {
+        if (!$this->isInTree()) {
+            throw new PropelException('A ChildCategory object must be already in the tree to be moved. Use the insertAsNextSiblingOf() instead.');
+        }
+        if ($sibling->isRoot()) {
+            throw new PropelException('Cannot move to next sibling of a root node.');
+        }
+        if ($sibling->isDescendantOf($this)) {
+            throw new PropelException('Cannot move a node as sibling of one of its subtree nodes.');
+        }
+
+        $this->moveSubtreeTo($sibling->getRightValue() + 1, $sibling->getLevel() - $this->getLevel(), $con);
+
+        return $this;
+    }
+
+    /**
+     * Move current node and its children to location $destLeft and updates rest of tree
+     *
+     * @param      int    $destLeft Destination left value
+     * @param      int    $levelDelta Delta to add to the levels
+     * @param      ConnectionInterface $con        Connection to use.
+     */
+    protected function moveSubtreeTo($destLeft, $levelDelta, ConnectionInterface $con = null)
+    {
+        $left  = $this->getLeftValue();
+        $right = $this->getRightValue();
+
+        $treeSize = $right - $left +1;
+
+        if (null === $con) {
+            $con = Propel::getServiceContainer()->getWriteConnection(CategoryTableMap::DATABASE_NAME);
+        }
+
+        $con->transaction(function () use ($con, $treeSize, $destLeft, $left, $right, $levelDelta) {
+            $preventDefault = false;
+
+            // make room next to the target for the subtree
+            ChildCategoryQuery::shiftRLValues($treeSize, $destLeft, null, $con);
+
+            if (!$preventDefault) {
+
+                if ($left >= $destLeft) { // src was shifted too?
+                    $left += $treeSize;
+                    $right += $treeSize;
+                }
+
+                if ($levelDelta) {
+                    // update the levels of the subtree
+                    ChildCategoryQuery::shiftLevel($levelDelta, $left, $right, $con);
+                }
+
+                // move the subtree to the target
+                ChildCategoryQuery::shiftRLValues($destLeft - $left, $left, $right, $con);
+            }
+
+            // remove the empty room at the previous location of the subtree
+            ChildCategoryQuery::shiftRLValues(-$treeSize, $right + 1, null, $con);
+
+            // update all loaded nodes
+            ChildCategoryQuery::updateLoadedNodes(null, $con);
+        });
+    }
+
+    /**
+     * Deletes all descendants for the given node
+     * Instance pooling is wiped out by this command,
+     * so existing ChildCategory instances are probably invalid (except for the current one)
+     *
+     * @param      ConnectionInterface $con Connection to use.
+     *
+     * @return     int         number of deleted nodes
+     */
+    public function deleteDescendants(ConnectionInterface $con = null)
+    {
+        if ($this->isLeaf()) {
+            // save one query
+            return;
+        }
+        if (null === $con) {
+            $con = Propel::getServiceContainer()->getReadConnection(CategoryTableMap::DATABASE_NAME);
+        }
+        $left = $this->getLeftValue();
+        $right = $this->getRightValue();
+
+        return $con->transaction(function () use ($con, $left, $right) {
+            // delete descendant nodes (will empty the instance pool)
+            $ret = ChildCategoryQuery::create()
+                ->descendantsOf($this)
+                ->delete($con);
+
+            // fill up the room that was used by descendants
+            ChildCategoryQuery::shiftRLValues($left - $right + 1, $right, null, $con);
+
+            // fix the right value for the current node, which is now a leaf
+            $this->setRightValue($left + 1);
+
+            return $ret;
+        });
+    }
+
+    /**
+     * Returns a pre-order iterator for this node and its children.
+     *
+     * @return NestedSetRecursiveIterator
+     */
+    public function getIterator()
+    {
+        return new NestedSetRecursiveIterator($this);
     }
 
     /**
